@@ -42,7 +42,7 @@ class OBJ(object):
                         norms.append(int(w[2]))
                     else:
                         norms.append(0)
-                self.faces.append((face, norms, texcoords, material))
+                self.faces.append(face)
 
 
 
