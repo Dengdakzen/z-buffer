@@ -19,9 +19,31 @@ def Polygon_Table(TDVertices,ThDVertices, f_set):
     y_axis = TDVertices[f_set - 1,1]
     return np.column_stack((np.max(y_axis,axis=1),quad_rep,ids))
 
-def TD2EdgeTable(TDVertices,f_set):
-    A = TDVertices[f_set[:,0]]
+def TwoPointsToEdge(A0,B0):
+    X_max_Y_max = B0.copy()
+    AB = (A0[:,1] >= B0[:,1])
+    X_max_Y_max[AB] = A0[AB]
+    dX_dY = A0 - B0
+    sub_inv_k = -dX_dY[:,0]/dX_dY[:,1]
+    dY = np.abs(dX_dY[:,1])
+    ids = np.array(range(A0.shape[0]))
+    return(np.column_stack((X_max_Y_max[:,1],X_max_Y_max[:,0],sub_inv_k,dY,ids)))
 
+
+
+def TD2EdgeTable(TDVertices,f_set):
+    A = TDVertices[f_set[:,0] - 1,0:2]
+    B = TDVertices[f_set[:,1] - 1,0:2]
+    C = TDVertices[f_set[:,2] - 1,0:2]
+    D = TwoPointsToEdge(A,B)
+    E = TwoPointsToEdge(C,B)
+    F = TwoPointsToEdge(A,C)
+    edge_set = np.row_stack((D,E,F))
+    
+    return None
+    
+
+    
 
 
 class z_buffer(object):
@@ -40,10 +62,12 @@ if __name__ == "__main__":
     d = np.array([[1,7,1],[0,2,9]])
     e = np.cross(c[0],d[0])
     print(e)
-    filename = "Example02.obj"
+    filename = "Example03.obj"
     A = OBJ(filename)
     plane = ScreenCoord()
     ThDVertices = np.array(A.vertices)
     TwoDvertices = plane.transform(ThDVertices)
     f_set = np.array(A.faces,dtype = int)
-    Polygon_Table(TwoDvertices,ThDVertices,f_set)
+    # Polygon_Table(TwoDvertices,ThDVertices,f_set)
+    K = TD2EdgeTable(TwoDvertices,f_set)
+    print(K)
