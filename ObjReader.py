@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class OBJ(object):
     def __init__(self, filename, swapyz=False):
         """Loads a Wavefront OBJ file. """
@@ -43,6 +46,20 @@ class OBJ(object):
                     else:
                         norms.append(0)
                 self.faces.append(face)
+        self.vertices = np.array(self.vertices)
+        self.normals = np.array(self.normals)
+        self.texcoords = np.array(self.texcoords)
+        self.faces = np.array(self.faces,dtype = int)
+
+
+    def normalization(self,edge_length = 1000, display_ratio = 0.7):
+        max_x = np.max(self.vertices[:,0])
+        max_y = np.max(self.vertices[:,1])
+        max_z = np.max(self.vertices[:,2])
+        min_x = np.min(self.vertices[:,0])
+        min_y = np.min(self.vertices[:,1])
+        min_z = np.min(self.vertices[:,2])
+        
 
 
 
