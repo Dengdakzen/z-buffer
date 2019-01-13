@@ -59,7 +59,13 @@ class OBJ(object):
         min_x = np.min(self.vertices[:,0])
         min_y = np.min(self.vertices[:,1])
         min_z = np.min(self.vertices[:,2])
-        
+        scale = np.max([max_x - min_x,max_y - min_y,max_z - min_z])
+        print(scale)
+        print([max_x ,min_x,max_y ,min_y,max_z ,min_z])
+
+        self.vertices[:,0] = (self.vertices[:,0] - min_x)/scale*display_ratio*edge_length + edge_length * (1 - display_ratio)/2 
+        self.vertices[:,1] = (self.vertices[:,1] - min_y)/scale*display_ratio*edge_length + edge_length * (1 - display_ratio)/2 
+        self.vertices[:,2] = (self.vertices[:,2] - min_z)/scale*display_ratio*edge_length + edge_length * (1 - display_ratio)/2        
 
 
 

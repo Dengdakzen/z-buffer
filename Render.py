@@ -14,7 +14,7 @@ class ScreenCoord(object):
         self.y_coord = (np.array(y_coord) - self.origin)/np.linalg.norm(np.array(y_coord) - self.origin)
         self.z_coord = np.cross(self.x_coord,self.y_coord)
         self.affine_matrix = inv(np.column_stack((self.x_coord,self.y_coord,self.z_coord)))
-        print(self.affine_matrix)
+        # print(self.affine_matrix)
         self.transform_vec = self.origin
         '''
         from world coordinates to screen coordinates
