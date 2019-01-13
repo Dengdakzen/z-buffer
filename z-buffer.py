@@ -24,6 +24,7 @@ def Polygon_Table(TDVertices,ThDVertices, f_set):
     P_Set = np.column_stack((np.max(y_axis,axis=1),quad_rep,ids,dy))
     index = np.argsort(P_Set[:,0])[::-1]
     sorted_P_set = P_Set[index,:]
+    f_set = f_set[index,:]
     return sorted_P_set 
 
 def TwoPointsToEdge(A0,B0):
@@ -46,11 +47,13 @@ def TD2EdgeTable(TDVertices,f_set):
     E = TwoPointsToEdge(C,B)
     F = TwoPointsToEdge(A,C)
     edge_set = np.row_stack((D,E,F))
-    index = np.argsort(edge_set[:,0],)[::-1]
-    sorted_edge_set = edge_set[index,:]
-    return sorted_edge_set
+    # index = np.argsort(edge_set[:,0],)[::-1]
+    # sorted_edge_set = edge_set[index,:]
+    return edge_set
     
-
+def AET_Element(E1,E2,current_line_y):
+    (E1[0] - current_line_y)*E1[2] + E1[1]
+    pass
     
 
 
@@ -91,9 +94,11 @@ class z_buffer(object):
                     break
                 continue
             for poly in APT_index:
+                two_edge = []
                 for j in range(3):
-                    if edge_set[j * poly_set.shape[0] + poly][0] >= current_line_y:
-
+                    if edge_set[j * poly_set.shape[0] + poly][0] >= current_line_y and AET_value[j * poly_set.shape[0] + poly] > 0:
+                        two_edge.append(j * poly_set.shape[0] + poly)
+                
 
             if i == poly_set.shape[0]:
                 break
