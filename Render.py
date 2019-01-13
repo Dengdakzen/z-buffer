@@ -25,6 +25,9 @@ class ScreenCoord(object):
             res = np.round((np.dot(self.affine_matrix, A.T) - self.origin.reshape([3,1])).T)
             print(res.shape)
             return res
+        else:
+            res = (np.dot(self.affine_matrix, A.T) - self.origin.reshape([3,1])).T
+            return res
 
 
 if __name__ == "__main__":

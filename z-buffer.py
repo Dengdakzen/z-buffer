@@ -3,12 +3,14 @@ import numpy as np
 import cv2
 from ObjReader import OBJ
 from Render import ScreenCoord
+import time
 
 def get_quad_rep(ThDVertices,f_set):
     v1_set = ThDVertices[f_set[:,0] - 1] - ThDVertices[f_set[:,1] - 1]
     v2_set = ThDVertices[f_set[:,0] - 1] - ThDVertices[f_set[:,2] - 1]
     v0_set = ThDVertices[f_set[:,0] - 1]
     norm_set = np.cross(v1_set,v2_set)
+    # norm_set = norm_set/(np.max(np.abs(norm_set),axis = 1)[:,np.newaxis])
     d_set = -np.sum(norm_set * v0_set,axis = 1)
     # print(d_set)
     return np.column_stack((norm_set,d_set))
@@ -18,7 +20,7 @@ def Polygon_Table(ThDVertices, f_set):
     ymax,a,b,c,d,id,dy
     '''
     # print(TDVertices)
-    print(ThDVertices)
+    # print(ThDVertices)
     quad_rep = get_quad_rep(ThDVertices,f_set)
     ids = np.array(range(f_set.shape[0]))
     y_axis = ThDVertices[f_set - 1,1]
@@ -31,6 +33,9 @@ def Polygon_Table(ThDVertices, f_set):
     return sorted_P_set,f_set
 
 def TwoPointsToEdge(A0,B0):
+    '''
+    ymax, x_max, -1/k, dy, id
+    '''
     X_max_Y_max = B0.copy()
     AB = (A0[:,1] >= B0[:,1])
     X_max_Y_max[AB] = A0[AB]
@@ -57,8 +62,8 @@ def EdgeTable(ThDVertices,f_set):
     return edge_set
     
 def AET_Element(E1,E2,current_line_y,polygon,l_edge,r_edge,last_edge):
-    print(E1)
-    print(E2)
+    # print(E1)
+    # print(E2)
     xl = np.round((E1[0] - current_line_y)*E1[2] + E1[1])
     dxl = E1[2]
     dyl = E1[-2] - E1[0] + current_line_y
@@ -67,7 +72,7 @@ def AET_Element(E1,E2,current_line_y,polygon,l_edge,r_edge,last_edge):
     dyr = E2[-2] - E2[0] + current_line_y
     # print(p_id)
     p_id = int(E1[-1])
-    if polygon[p_id][3] < 0.001:
+    if np.abs(polygon[p_id][3]) < 0.0001:
         zl = -polygon[p_id][4]
         zr = -polygon[p_id][4]
         dzx = 0
@@ -77,7 +82,12 @@ def AET_Element(E1,E2,current_line_y,polygon,l_edge,r_edge,last_edge):
         zr = (-polygon[p_id][4] - xr * polygon[p_id][1] - current_line_y * polygon[p_id][2])/polygon[p_id][3]
         dzx = -polygon[p_id][1]/polygon[p_id][3]
         dzy = polygon[p_id][2]/polygon[p_id][3]
-    if xl < xr:
+    if xl == xr:
+        if dxl < dxr:
+            return np.array([xl,dxl,dyl,xr,dxr,dyr,zl,dzx,dzy,p_id,l_edge,r_edge,last_edge])
+        else:
+            return np.array([xr,dxr,dyr,xl,dxl,dyl,zr,dzx,dzy,p_id,r_edge,l_edge,last_edge])
+    elif xl < xr:
         return np.array([xl,dxl,dyl,xr,dxr,dyr,zl,dzx,dzy,p_id,l_edge,r_edge,last_edge])
     else:
         return np.array([xr,dxr,dyr,xl,dxl,dyl,zr,dzx,dzy,p_id,r_edge,l_edge,last_edge])
@@ -87,44 +97,58 @@ def AET_Element(E1,E2,current_line_y,polygon,l_edge,r_edge,last_edge):
 
 class z_buffer(object):
     def __init__(self,obj,x_coord = (1,0,0),y_coord = (0,1,0), origin = (0,0,0)):
+        
+        self.t1 = time.time()
         self.data = obj
         self.plane = ScreenCoord(x_coord,y_coord,origin)
         self.f_set = np.array(self.data.faces,dtype = int)
         self.Original_Vertices = np.array(self.data.vertices)
 
-    def process(self,visualization = True):
-        ThDVertices = self.plane.transform(self.Original_Vertices)
+    def normalization(self,vertices,edge_length = 1000, display_ratio = 0.7):
+            max_x = np.max(vertices[:,0])
+            max_y = np.max(vertices[:,1])
+            max_z = np.max(vertices[:,2])
+            min_x = np.min(vertices[:,0])
+            min_y = np.min(vertices[:,1])
+            min_z = np.min(vertices[:,2])
+            scale = np.max([max_x - min_x,max_y - min_y])
+            # print(scale)
+            # print([max_x ,min_x,max_y ,min_y])
+
+            vertices[:,0] = (vertices[:,0] - 0.5*(min_x + max_x))/scale*display_ratio*edge_length + edge_length * 0.5 
+            vertices[:,1] = (vertices[:,1] - 0.5*(min_y + max_y))/scale*display_ratio*edge_length + edge_length * 0.5
+            vertices[:,2] = (vertices[:,2] - min_z)/(max_z - min_z)*255
+            return np.round(vertices)
+
+    def process(self,visualization = False):
+        ThDVertices = self.plane.transform(self.Original_Vertices,round = False)
+        ThDVertices = self.normalization(ThDVertices)
         f_buf = np.zeros([1000,1000],dtype = np.uint8)
         z_buf = np.zeros([1,1000],dtype = np.uint8)
         f_set_copy = self.f_set.copy()
-        print(f_set_copy)
+        # print(f_set_copy)
         poly_set,f_set_copy = Polygon_Table(ThDVertices,f_set_copy)
         edge_set = EdgeTable(ThDVertices,f_set_copy)
-        print(edge_set)
-        print("polygon_table:\n",poly_set)
-        print(f_set_copy)
+        # print("edge_table:\n",edge_set)
+        # print("polygon_table:\n",poly_set)
+        # print(f_set_copy)
         APT = []
         APT_index = []
-        APT_map = np.zeros(f_set_copy.shape[0])
         APT_value = poly_set[:,-1].copy()
         AET = []
-        AET_index = []
         AET_value = edge_set[:,-2].copy()
         if visualization == True:
             cv2.imshow("test",f_buf)
             cv2.waitKey()
         current_line_y = poly_set[0][0]
-        print(current_line_y)
+        least_line_y = np.min(ThDVertices[:,1])
         i = 0
-        # for i in range(poly_set.shape[0]):
         APT_to_be_delete = []
         AET_to_be_delete = []
         while(1):
-            if poly_set[i][0] == current_line_y:
-                print(current_line_y)
-                # APT.append(poly_set[i])
+            # print(i)
+            if i < poly_set.shape[0] and poly_set[i][0] == current_line_y:
                 APT_index.append(i)
-                # APT_map[i] = 1
                 i += 1
                 if i != poly_set.shape[0]:
                     continue
@@ -139,7 +163,7 @@ class z_buffer(object):
                     two_edge = []
                     original_edge_index = [poly,poly_set.shape[0] + poly,2 * poly_set.shape[0] + poly]
                     for j in range(3):
-                        if edge_set[j * poly_set.shape[0] + poly][0] >= current_line_y and AET_value[j * poly_set.shape[0] + poly] > 0 and edge_set[j * poly_set.shape[0] + poly][2] < 10000:
+                        if edge_set[j * poly_set.shape[0] + poly][0] >= current_line_y and np.abs(edge_set[j * poly_set.shape[0] + poly][2]) <= 1000:
                             two_edge.append(j * poly_set.shape[0] + poly)
                             original_edge_index.remove(j * poly_set.shape[0] + poly)
                     if len(two_edge) == 2:
@@ -151,11 +175,13 @@ class z_buffer(object):
                     APT_to_be_delete.append(count_apt)
                 count_apt += 1
             # break
+            # print(AET_to_be_delete)
             for del_ind in AET_to_be_delete[::-1]:
-                # del(APT[del_ind])
-                del(AET_index[del_ind])
+                del(AET[del_ind])
+                
             AET_to_be_delete = []
             count_aet = 0
+            z_buf = np.zeros([1,1000],dtype = np.uint8)
             for et in AET:
                 begin_idx = int(et[0])
                 end_idx = int(et[3])
@@ -167,21 +193,26 @@ class z_buffer(object):
                     zx += dzx
                 et[0] += et[1]
                 et[3] += et[4]
+                et[6] += et[7]*et[1] + et[8]
                 et[2] -= 1
                 et[5] -= 1
                 if et[2] < 0 and et[5] < 0:
                     AET_to_be_delete.append(count_aet)
                 elif et[2] < 0 and et[5] >= 0:
-                    AET[count_aet] = AET_Element(edge_set[et[-2]],edge_set[et[-1]],current_line_y - 1,polygon,-1,-1,-1)
+                    AET[count_aet] = AET_Element(edge_set[int(et[-2])],edge_set[int(et[-1])],current_line_y - 1,poly_set,-1,-1,-1)
                 elif et[5] < 0 and et[2] >= 0:
-                    AET[count_aet] = AET_Element(edge_set[et[-3]],edge_set[et[-1]],current_line_y - 1,polygon,-1,-1,-1)
+                    AET[count_aet] = AET_Element(edge_set[int(et[-3])],edge_set[int(et[-1])],current_line_y - 1,poly_set,-1,-1,-1)
 
                 count_aet += 1
             f_buf[int(current_line_y),:] = z_buf.copy()
-
             current_line_y -= 1
-            if i == poly_set.shape[0]:
+            if current_line_y < least_line_y:
                 break
+            # if i == poly_set.shape[0]:
+            #     break
+        f_buf = f_buf[::-1]
+        self.t2 = time.time()
+        print(self.t2 - self.t1)
         cv2.imshow("test",f_buf)
         cv2.waitKey()
         
@@ -192,26 +223,13 @@ class z_buffer(object):
 
 
 if __name__ == "__main__":
-    # a = range(10)
-    # b = np.repeat(a,3)
-    # print(b)
-    # c = np.array([[1,1,1],[1,2,4]])
-    # d = np.array([[1,7,1],[0,2,9]])
-    # e = np.cross(c[0],d[0])
-    # print(e)
-    filename = "Example02.obj"
+
+    # filename = "Example01.obj"
+    filename = "bunny.obj"
     A = OBJ(filename)
-    A.normalization()
-    # # A.normalization()
-    # # plane = ScreenCoord()
-    # # ThDVertices = np.array(A.vertices)
-    # # TwoDvertices = plane.transform(ThDVertices)
-    # # f_set = np.array(A.faces,dtype = int)
-    # # # Polygon_Table(TwoDvertices,ThDVertices,f_set)
-    # # K = TD2EdgeTable(TwoDvertices,f_set)
-    # # print(K)
+    # zb = z_buffer(A)
+    #uncomment to change the screen coordinates
     # zb = z_buffer(A,(3,4,0),(-4,3,0))
-    zb = z_buffer(A)
+    zb = z_buffer(A,(1,1,1),(1,0,-1))
     zb.process()
-    # print(b)
     

@@ -50,22 +50,7 @@ class OBJ(object):
         self.normals = np.array(self.normals)
         self.texcoords = np.array(self.texcoords)
         self.faces = np.array(self.faces,dtype = int)
-
-
-    def normalization(self,edge_length = 1000, display_ratio = 0.7):
-        max_x = np.max(self.vertices[:,0])
-        max_y = np.max(self.vertices[:,1])
-        max_z = np.max(self.vertices[:,2])
-        min_x = np.min(self.vertices[:,0])
-        min_y = np.min(self.vertices[:,1])
-        min_z = np.min(self.vertices[:,2])
-        scale = np.max([max_x - min_x,max_y - min_y,max_z - min_z])
-        print(scale)
-        print([max_x ,min_x,max_y ,min_y,max_z ,min_z])
-
-        self.vertices[:,0] = (self.vertices[:,0] - min_x)/scale*display_ratio*edge_length + edge_length * (1 - display_ratio)/2 
-        self.vertices[:,1] = (self.vertices[:,1] - min_y)/scale*display_ratio*edge_length + edge_length * (1 - display_ratio)/2 
-        self.vertices[:,2] = (self.vertices[:,2] - min_z)/scale*display_ratio*edge_length + edge_length * (1 - display_ratio)/2        
+    
 
 
 
