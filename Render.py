@@ -22,7 +22,9 @@ class ScreenCoord(object):
 
     def transform(self,A,round = True):
         if round == True:
-            return np.round((np.dot(self.affine_matrix, A.T) - self.origin.reshape([3,1])).T)
+            res = np.round((np.dot(self.affine_matrix, A.T) - self.origin.reshape([3,1])).T)
+            print(res.shape)
+            return res
 
 
 if __name__ == "__main__":
