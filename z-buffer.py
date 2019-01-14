@@ -212,7 +212,7 @@ class z_buffer(object):
             #     break
         f_buf = f_buf[::-1]
         self.t2 = time.time()
-        print(self.t2 - self.t1)
+        print("time:",self.t2 - self.t1)
         cv2.imshow("test",f_buf)
         cv2.waitKey()
         
@@ -227,9 +227,9 @@ if __name__ == "__main__":
     # filename = "Example01.obj"
     filename = "bunny.obj"
     A = OBJ(filename)
-    # zb = z_buffer(A)
+    zb = z_buffer(A)
     #uncomment to change the screen coordinates
     # zb = z_buffer(A,(3,4,0),(-4,3,0))
-    zb = z_buffer(A,(1,1,1),(1,0,-1))
+    # zb = z_buffer(A,(1,1,1),(1,0,-1))
     zb.process()
     
